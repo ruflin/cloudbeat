@@ -49,6 +49,7 @@ type Config struct {
 	Period      time.Duration           `config:"period"`
 	Processors  processors.PluginConfig `config:"processors"`
 	BundlePath  string                  `config:"bundle_path"`
+	Assets      bool                    `config:"assets"`
 }
 
 type CloudConfig struct {

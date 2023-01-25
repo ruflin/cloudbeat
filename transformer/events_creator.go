@@ -20,6 +20,7 @@ package transformer
 import (
 	"context"
 	"fmt"
+	"github.com/elastic/elastic-agent-autodiscover/kubernetes"
 	"time"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
@@ -106,6 +107,16 @@ func (t *Transformer) CreateBeatEvents(_ context.Context, eventData evaluator.Ev
 	}
 
 	return events, nil
+}
+
+func (t *Transformer) CreatAssetEvent(_ context.Context, eventData fetching.ResourceInfo) ([]beat.Event, error) {
+	data := eventData.GetData()
+	v, ok := data.(*kubernetes.Node)
+	if ok {
+		t.log.Info("Found k8s node asset: %s", v.UID)
+	}
+
+	return nil, nil
 }
 
 func buildECSEvent(seq int64, created time.Time) ECSEvent {

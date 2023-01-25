@@ -171,9 +171,17 @@ func (bt *cloudbeat) Run(b *beat.Beat) error {
 		return err
 	}
 
+	// Asset collection config, currently does nothing
+	if bt.config.Assets {
+		bt.log.Info("Asset collection enabled")
+	}
 	// Creating the data pipeline
-	findingsCh := pipeline.Step(bt.log, bt.resourceCh, bt.evaluator.Eval)
+	findingsChTmp, assetsCh := pipeline.ExtractAssets(bt.log, bt.resourceCh, bt.evaluator.Eval)
+	findingsCh := pipeline.Step(bt.log, findingsChTmp, bt.evaluator.Eval)
 	eventsCh := pipeline.Step(bt.log, findingsCh, bt.transformer.CreateBeatEvents)
+
+	// Does nothing at the moment but draining the channel
+	pipeline.Step(bt.log, assetsCh, bt.transformer.CreatAssetEvent)
 
 	var eventsToSend []beat.Event
 	ticker := time.NewTicker(flushInterval)

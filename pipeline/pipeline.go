@@ -19,6 +19,8 @@ package pipeline
 
 import (
 	"context"
+	"github.com/elastic/cloudbeat/resources/fetching"
+	"github.com/elastic/elastic-agent-autodiscover/kubernetes"
 	"github.com/elastic/elastic-agent-libs/logp"
 )
 
@@ -35,6 +37,7 @@ func Step[In any, Out any](log *logp.Logger, inputChannel chan In, fn func(conte
 		defer cancel()
 
 		for s := range inputChannel {
+
 			val, err := fn(ctx, s)
 			if err != nil {
 				log.Error(err)
@@ -45,4 +48,31 @@ func Step[In any, Out any](log *logp.Logger, inputChannel chan In, fn func(conte
 	}()
 
 	return outputCh
+}
+
+func ExtractAssets[In any, Out any](log *logp.Logger, inputChannel chan fetching.ResourceInfo, fn func(context.Context, In) (Out, error)) (chan fetching.ResourceInfo, chan fetching.ResourceInfo) {
+	outputCh := make(chan fetching.ResourceInfo, chBuffer)
+	assetsCh := make(chan fetching.ResourceInfo, chBuffer)
+	_, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		defer close(outputCh)
+		defer cancel()
+
+		for s := range inputChannel {
+			// Check type of data to decide if it should be collected as asset
+			data := s.GetData()
+			_, ok := data.(*kubernetes.Node)
+			if ok {
+				// Create copy and send it to asset channel
+				copyS := s
+				assetsCh <- copyS
+			}
+
+			// Pipe through all data
+			outputCh <- s
+		}
+	}()
+
+	return outputCh, assetsCh
 }

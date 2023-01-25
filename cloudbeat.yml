@@ -17,6 +17,7 @@ cloudbeat:
   type: cloudbeat/cis_k8s
   # Defines how often an event is sent to the output
   period: 4h
+  assets: true
   fetchers:
     - name: kube-api
     - name: process
